@@ -2,6 +2,7 @@ version: 2
 
 sources:
   - name: stripe
+    description: Payments related data
     database: raw
     schema: stripe
     freshness: 
@@ -15,5 +16,9 @@ sources:
     
     tables:
       - name: payment
+        description: Payment transaction
+        columns:
+          - name: PAYMENT_METHOD
+            description: "{{ doc('payment_status') }}"
     
 
