@@ -85,3 +85,67 @@ set episode_details = {
     {%- endif %}
 {%- endfor -%}
 
+-- Accessing a model using refernce keyword and working on the pivoting logic on the table
+
+-- without jinja logic
+
+    with payments as(
+        SELECT * FROM {{ source("stripe", 'payment') }}
+    ),
+    pivoted_table as(
+        SELECT 
+            orderid,
+            SUM(CASE WHEN paymentmethod='bank_transfer' then amount else 0 end) as bank_transfer_amount,
+            SUM(CASE WHEN paymentmethod='credit_card' then amount else 0 end) as credit_card_amount,
+            SUM(CASE WHEN paymentmethod='coupon' then amount else 0 end) as coupon_amount,
+            SUM(CASE WHEN paymentmethod='gift_card' then amount else 0 end) as gift_card_amount
+        FROM payments
+        WHERE status='success'
+        GROUP BY orderid
+    )
+    SELECT * FROM pivoted_table
+
+-- with jinja logic
+
+{%- set paymentmethod=['bank_transfer', 'credit_card', 'coupon', 'gift_card'] -%}
+
+    with payments as(
+        SELECT * FROM {{ source("stripe", 'payment') }}
+    ),
+    pivoted_table as(
+        SELECT 
+            orderid,
+            {%- for payment_mode in paymentmethod -%}
+                {%- if payment_mode != 'gift_card' %}
+                    SUM(CASE WHEN paymentmethod='{{ payment_mode }}' then amount else 0 end) as {{ payment_mode }}_amount,
+                {%- else %}
+                    SUM(CASE WHEN paymentmethod='{{ payment_mode }}' then amount else 0 end) as {{ payment_mode }}_amount
+                {%- endif -%}
+            {%- endfor %}
+        FROM payments
+        WHERE status='success'
+        GROUP BY orderid
+    )
+    SELECT * FROM pivoted_table
+
+-- with jinja shorter logic
+
+{%- set paymentmethod=['bank_transfer', 'credit_card', 'coupon', 'gift_card'] -%}
+
+    with payments as(
+        SELECT * FROM {{ source("stripe", 'payment') }}
+    ),
+    pivoted_table as(
+        SELECT 
+            orderid,
+            {% for payment_mode in paymentmethod -%}
+                SUM(CASE WHEN paymentmethod='{{ payment_mode }}' then amount else 0 end) as {{ payment_mode }}_amount
+                {%- if not loop.last -%}
+                    ,
+                {%- endif %}
+            {% endfor -%}
+        FROM payments
+        WHERE status='success'
+        GROUP BY orderid
+    )
+    SELECT * FROM pivoted_table

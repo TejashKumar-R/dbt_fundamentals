@@ -57,6 +57,20 @@ ON T1.{{column_name}} = T2.{{column_name}}
 
 {{ number_check('-97') }}
 
+-- alternate method
+{%- macro number_check1(num) -%}
+    {%- if num>0 -%}
+        {%- set message = "Positive" -%}
+    {%- elif num<0 -%}
+        {%- set message = "Negative" -%}
+    {%- else -%}
+        {%- set message = "Zero" -%}
+    {%- endif -%}
+    {{message}}
+{%- endmacro -%}
+
+{{ number_check1(0.7) }}
+
 -- 7)write a macro to read item from list and print the elements of list in seperate lines
 
 {%- macro list_iterator(user_list) -%}
